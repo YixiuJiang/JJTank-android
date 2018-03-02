@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.support.v7.app.AppCompatActivity
+import org.jetbrains.anko.toast
 
 class SplashActivity : AppCompatActivity() {
     private var mDelayHandler: Handler? = null
@@ -14,6 +15,7 @@ class SplashActivity : AppCompatActivity() {
 
             val intent = Intent(applicationContext, MainActivity::class.java)
             startActivity(intent)
+            toast("Scanning tanks...")
             finish()
         }
     }
