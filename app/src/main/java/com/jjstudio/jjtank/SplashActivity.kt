@@ -4,6 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.LinearLayoutManager
+import android.support.v7.widget.RecyclerView
+import android.widget.LinearLayout
 import org.jetbrains.anko.toast
 
 class SplashActivity : AppCompatActivity() {
@@ -29,6 +32,17 @@ class SplashActivity : AppCompatActivity() {
 
         //Navigate with delay
         mDelayHandler!!.postDelayed(mRunnable, SPLASH_DELAY)
+
+        val rv:RecyclerView = findViewById<RecyclerView>(R.id.tankListView)
+        rv.layoutManager = LinearLayoutManager(this, LinearLayout.VERTICAL, false)
+        val users = ArrayList<Tank>()
+        users.add(Tank(1, "Merkava 4","1",StatusEnum.Connected))
+        users.add(Tank(2, "T62","2",StatusEnum.Disconnected))
+        users.add(Tank(3, "ZTZ99","3",StatusEnum.Connected))
+        users.add(Tank(4, "T55","4",StatusEnum.Disconnected))
+
+        var adapter = TankAdapter(users)
+        rv.adapter = adapter
 
     }
 
