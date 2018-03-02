@@ -42,7 +42,7 @@ class SplashActivity : AppCompatActivity() {
         users.add(Tank(4, "T55","4",StatusEnum.Disconnected))
 
         var adapter = TankAdapter(users)
-        rv.adapter = adapter
+        rv.adapter = TankAdapter(users)
 
     }
 

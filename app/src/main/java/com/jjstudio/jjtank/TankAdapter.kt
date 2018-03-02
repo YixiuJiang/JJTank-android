@@ -19,7 +19,7 @@ class TankAdapter(val tankList: ArrayList<Tank>): RecyclerView.Adapter<TankAdapt
 
     override fun onCreateViewHolder(parent: ViewGroup?, viewType: Int): ViewHolder {
         val v = LayoutInflater.from(parent?.context).inflate(R.layout.tank_item_layout, parent, false)
-        return ViewHolder(v);
+        return ViewHolder(v)
     }
 
     override fun getItemCount(): Int {
