@@ -31,7 +31,7 @@ class SplashActivity : AppCompatActivity() {
         mDelayHandler = Handler()
 
         //Navigate with delay
-        mDelayHandler!!.postDelayed(mRunnable, SPLASH_DELAY)
+//        mDelayHandler!!.postDelayed(mRunnable, SPLASH_DELAY)
 
         val rv:RecyclerView = findViewById<RecyclerView>(R.id.tankListView)
         rv.layoutManager = LinearLayoutManager(this, LinearLayout.VERTICAL, false)

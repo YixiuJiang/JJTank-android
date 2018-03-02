@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import org.jetbrains.anko.toast
 
 class TankAdapter(val tankList: ArrayList<Tank>): RecyclerView.Adapter<TankAdapter.ViewHolder>() {
 
@@ -19,7 +20,13 @@ class TankAdapter(val tankList: ArrayList<Tank>): RecyclerView.Adapter<TankAdapt
 
     override fun onCreateViewHolder(parent: ViewGroup?, viewType: Int): ViewHolder {
         val v = LayoutInflater.from(parent?.context).inflate(R.layout.tank_item_layout, parent, false)
-        return ViewHolder(v)
+        return ViewHolder(v).listen{pos,type ->
+           run {
+                val tank = tankList[pos]
+               print(tank.title)
+            }
+
+        }
     }
 
     override fun getItemCount(): Int {
@@ -30,6 +37,14 @@ class TankAdapter(val tankList: ArrayList<Tank>): RecyclerView.Adapter<TankAdapt
         val tankTitle = itemView.findViewById<TextView>(R.id.tankTitle)
         val tankStatus = itemView.findViewById<TextView>(R.id.tankStatus)
 
+    }
+
+
+    fun <T : RecyclerView.ViewHolder> T.listen(event: (position: Int, type: Int) -> Unit): T {
+        itemView.setOnClickListener {
+            event.invoke(getAdapterPosition(), getItemViewType())
+        }
+        return this
     }
 
 }
