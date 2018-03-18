@@ -8,6 +8,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import kotlinx.android.synthetic.main.tank_item_layout.view.*
+import org.jetbrains.anko.sdk25.coroutines.onClick
 import org.jetbrains.anko.toast
 
 class TankAdapter(val tankList: ArrayList<Tank>): RecyclerView.Adapter<TankAdapter.ViewHolder>() {
@@ -15,6 +17,11 @@ class TankAdapter(val tankList: ArrayList<Tank>): RecyclerView.Adapter<TankAdapt
     override fun onBindViewHolder(holder: ViewHolder?, position: Int) {
         holder?.tankTitle?.text = tankList[position].title
         holder?.tankStatus?.text = tankList[position].title
+        holder?.connectButton?.onClick {
+            val tank = tankList[position]
+            print(tank.title)
+
+        }
 
     }
 
@@ -34,9 +41,9 @@ class TankAdapter(val tankList: ArrayList<Tank>): RecyclerView.Adapter<TankAdapt
     }
 
     class ViewHolder(itemView: View): RecyclerView.ViewHolder(itemView){
-        val tankTitle = itemView.findViewById<TextView>(R.id.tankTitle)
-        val tankStatus = itemView.findViewById<TextView>(R.id.tankStatus)
-
+        val tankTitle = itemView.tankTitle
+        val tankStatus = itemView.tankStatus
+        val connectButton = itemView.connectButton
     }
 
 
