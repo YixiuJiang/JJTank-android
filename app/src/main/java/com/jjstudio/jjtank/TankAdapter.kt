@@ -8,40 +8,46 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import kotlinx.android.synthetic.main.tank_item_layout.view.*
-import org.jetbrains.anko.sdk25.coroutines.onClick
+import org.jetbrains.anko.AnkoLogger
+import org.jetbrains.anko.info
 
-class TankAdapter(val tankList: ArrayList<Tank>) : RecyclerView.Adapter<TankAdapter.ViewHolder>() {
+class TankAdapter(val tankList: ArrayList<Tank>, val listener: RecyclerViewClickListener) : RecyclerView.Adapter<TankAdapter.ViewHolder>(), AnkoLogger {
+
 
     override fun onBindViewHolder(holder: ViewHolder?, position: Int) {
         holder?.tankTitle?.text = tankList[position].title
         holder?.tankStatus?.text = tankList[position].title
-        holder?.connectButton?.onClick {
-            val tank = tankList[position]
-            print(tank.title)
-
-        }
+        holder?.connectButton?.setOnClickListener(holder)
 
     }
 
     override fun onCreateViewHolder(parent: ViewGroup?, viewType: Int): ViewHolder {
         val v = LayoutInflater.from(parent?.context).inflate(R.layout.tank_item_layout, parent, false)
-        return ViewHolder(v).listen { pos, type ->
+        return ViewHolder(v, listener).listen { pos, type ->
             run {
                 val tank = tankList[pos]
-                print(tank.title)
+                info("click on")
             }
-
         }
     }
+
 
     override fun getItemCount(): Int {
         return tankList.size
     }
 
-    class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class ViewHolder(itemView: View, listener: RecyclerViewClickListener) : RecyclerView.ViewHolder(itemView), View.OnClickListener {
         val tankTitle = itemView.tankTitle
         val tankStatus = itemView.tankStatus
         val connectButton = itemView.connectButton
+        val mListener: RecyclerViewClickListener = listener
+
+        override fun onClick(view: View?) {
+            mListener.onClick(view, adapterPosition)
+//        info(tank.title)
+        }
+
+
     }
 
 
@@ -52,4 +58,8 @@ class TankAdapter(val tankList: ArrayList<Tank>) : RecyclerView.Adapter<TankAdap
         return this
     }
 
+}
+
+interface RecyclerViewClickListener {
+    fun onClick(view: View?, position: Int)
 }

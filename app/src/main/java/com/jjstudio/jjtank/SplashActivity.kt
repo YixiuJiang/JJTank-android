@@ -1,7 +1,6 @@
 package com.jjstudio.jjtank
 
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
+import android.bluetooth.*
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
@@ -13,12 +12,16 @@ import android.os.Handler
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_splash.*
 import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
 import org.jetbrains.anko.toast
+import android.bluetooth.BluetoothGattCharacteristic
+import java.util.*
+
 
 class SplashActivity : AppCompatActivity() {
     private var mDelayHandler: Handler? = null
@@ -26,6 +29,8 @@ class SplashActivity : AppCompatActivity() {
     lateinit var bleManager: BluetoothManager
     lateinit var bleAdapter: BluetoothAdapter
     lateinit var bleScanner: BluetoothLeScanner
+    lateinit var bluetoothGatt: BluetoothGatt
+    lateinit var tank: Tank
     internal val tanks = ArrayList<Tank>()
     lateinit var tankInfoTextView: TextView
     internal val mRunnable: Runnable = Runnable {
@@ -46,10 +51,9 @@ class SplashActivity : AppCompatActivity() {
         //Initialize the Handler
         mDelayHandler = Handler()
         //Navigate with delay
-//        mDelayHandler!!.postDelayed(mRunnable, SPLASH_DELAY)
         val rv: RecyclerView = this.tankListView
         rv.layoutManager = LinearLayoutManager(this, LinearLayout.VERTICAL, false)
-        var tankAdapter = TankAdapter(tanks)
+        var tankAdapter = TankAdapter(tanks, listener)
         rv.adapter = tankAdapter
         startScanning()
     }
@@ -82,11 +86,6 @@ class SplashActivity : AppCompatActivity() {
         })
     }
 
-    fun displayFoundTank(tankName: String) {
-        toast("found tanks..." + tankName)
-
-    }
-
     private val leScanCallback = object : ScanCallback(), AnkoLogger {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             addScanResult(result)
@@ -105,16 +104,53 @@ class SplashActivity : AppCompatActivity() {
             val bleDevice = scanResult?.device
             val deviceAddress = bleDevice?.address
             val deviceName = bleDevice?.name
-            if (tanks.filter { tank -> tank.uuid.equals(deviceAddress) }.size == 0) {
-                tanks.add(Tank(deviceName + " - " + deviceAddress, deviceAddress, StatusEnum.Disconnected, bleDevice))
+            if (tanks.filter { tank -> tank.uuid.equals(deviceAddress) }.isEmpty() && !deviceName.isNullOrBlank() && deviceName!!.startsWith("JJtk")) {
+                tanks.add(Tank(" $deviceName -  $deviceAddress", deviceAddress, StatusEnum.Disconnected, bleDevice))
                 info("Found LE device: $deviceAddress")
-                tankInfoTextView.append("\nfound device..." + bleDevice?.name + " - " + deviceAddress)
+                tankInfoTextView.append("\nfound device... $deviceName -  $deviceAddress")
             }
         }
     }
+    private val leConnectCallback = object : BluetoothGattCallback(){
+        override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS
+                    && newState == BluetoothProfile.STATE_CONNECTED) {
+                //Discover services
+                gatt!!.discoverServices()
+            } else if (status == BluetoothGatt.GATT_SUCCESS
+                    && newState == BluetoothProfile.STATE_DISCONNECTED) {
+                toast("Tank ${tank.title} disconnected")
+            }
+        }
 
-    companion object {
-        private val REQUEST_ENABLE_BT = 1
-        private val PERMISSION_REQUEST_COARSE_LOCATION = 1
+        override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+            bluetoothGatt = gatt!!
+                    mDelayHandler!!.postDelayed(mRunnable, SPLASH_DELAY)
+
+//            val ch =  BluetoothGattCharacteristic (
+//                    UUID.fromString (tank.uuid)
+//                    , BluetoothGattCharacteristic.PROPERTY_NOTIFY or BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE
+//                    , BluetoothGattDescriptor.PERMISSION_WRITE or BluetoothGattCharacteristic.PERMISSION_READ)
+//            ch.value = byteArrayOf(0x03.toByte())
+//            bluetoothGatt.writeCharacteristic(ch)
+        }
+
+        override fun onCharacteristicRead(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+            super.onCharacteristicRead(gatt, characteristic, status)
+        }
+
+        override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+            super.onCharacteristicWrite(gatt, characteristic, status)
+        }
     }
+
+    private val listener = object : RecyclerViewClickListener {
+        override fun onClick(view: View?, position: Int) {
+            tank = tanks[position]
+            toast("You select tank $tank")
+            tank.bluetoothDevice!!.connectGatt(view!!.context, false, leConnectCallback)
+            bleScanner.stopScan(leScanCallback)
+        }
+    }
+
 }
