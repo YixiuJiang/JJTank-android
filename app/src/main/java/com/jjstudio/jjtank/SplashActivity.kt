@@ -1,5 +1,7 @@
 package com.jjstudio.jjtank
 
+import android.app.AlertDialog
+import android.app.ProgressDialog
 import android.bluetooth.*
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -16,10 +18,7 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_splash.*
-import org.jetbrains.anko.AnkoLogger
-import org.jetbrains.anko.info
-import org.jetbrains.anko.toast
-import android.bluetooth.BluetoothGattCharacteristic
+import org.jetbrains.anko.*
 import java.util.*
 
 
@@ -27,12 +26,15 @@ class SplashActivity : AppCompatActivity() {
     private var mDelayHandler: Handler? = null
     private val SPLASH_DELAY: Long = 3000 //3 seconds
     lateinit var bleManager: BluetoothManager
+    lateinit var sendValue: ByteArray
     lateinit var bleAdapter: BluetoothAdapter
     lateinit var bleScanner: BluetoothLeScanner
     lateinit var bluetoothGatt: BluetoothGatt
     lateinit var tank: Tank
+    lateinit var progressDialog: ProgressDialog
     internal val tanks = ArrayList<Tank>()
     lateinit var tankInfoTextView: TextView
+    lateinit var bleAlert: AlertBuilder<AlertDialog>
     internal val mRunnable: Runnable = Runnable {
         if (!isFinishing) {
             val intent = Intent(applicationContext, MainActivity::class.java)
@@ -42,20 +44,22 @@ class SplashActivity : AppCompatActivity() {
         }
     }
 
+    internal val settingRunnable: Runnable = Runnable {
+        val intentOpenBluetoothSettings = Intent()
+        intentOpenBluetoothSettings.action = android.provider.Settings.ACTION_BLUETOOTH_SETTINGS
+        startActivity(intentOpenBluetoothSettings)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_splash)
-        tankInfoTextView = this.tankInfos
-        bleManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        bleAdapter = bleManager.adapter
-        //Initialize the Handler
-        mDelayHandler = Handler()
-        //Navigate with delay
-        val rv: RecyclerView = this.tankListView
-        rv.layoutManager = LinearLayoutManager(this, LinearLayout.VERTICAL, false)
-        var tankAdapter = TankAdapter(tanks, listener)
-        rv.adapter = tankAdapter
-        startScanning()
+        bleAlert = alert("Please turn on your bluetooth setting")
+
+        initActivity()
+
+    }
+
+    fun checkBluetooth(): Boolean {
+        return bleAdapter != null && bleAdapter.isEnabled
     }
 
     public override fun onDestroy() {
@@ -67,7 +71,8 @@ class SplashActivity : AppCompatActivity() {
 
     fun startScanning() {
         toast("Scanning tanks...")
-
+        progressDialog = indeterminateProgressDialog("Scanning tanks...")
+        progressDialog.show()
         AsyncTask.execute(object : Runnable {
             override fun run() {
                 bleScanner = bleAdapter.bluetoothLeScanner
@@ -84,6 +89,42 @@ class SplashActivity : AppCompatActivity() {
                 bleScanner.stopScan(leScanCallback)
             }
         })
+    }
+
+    fun initActivity() {
+        setContentView(R.layout.activity_splash)
+        tankInfoTextView = this.tankInfos
+        bleManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        bleAdapter = bleManager.adapter
+        mDelayHandler = Handler()
+
+        if (!checkBluetooth()) {
+//            toast("Bluetooth is not enabled, will go to bluetooth setting in 3s")
+//            mDelayHandler!!.postDelayed(settingRunnable, SPLASH_DELAY)
+            bleAlert.title = "Alert"
+            bleAlert.yesButton {
+                // dialog is now smart-casted to AlertDialog
+                bleAlert.build().dismiss()
+                val intentOpenBluetoothSettings = Intent()
+                intentOpenBluetoothSettings.action = android.provider.Settings.ACTION_BLUETOOTH_SETTINGS
+                startActivity(intentOpenBluetoothSettings)
+            }
+            bleAlert.show()
+
+        } else {
+            //Initialize the Handler
+            //Navigate with delay
+            val rv: RecyclerView = this.tankListView
+            rv.layoutManager = LinearLayoutManager(this, LinearLayout.VERTICAL, false)
+            var tankAdapter = TankAdapter(tanks, listener)
+            rv.adapter = tankAdapter
+            startScanning()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        initActivity()
     }
 
     private val leScanCallback = object : ScanCallback(), AnkoLogger {
@@ -111,12 +152,13 @@ class SplashActivity : AppCompatActivity() {
             }
         }
     }
-    private val leConnectCallback = object : BluetoothGattCallback(){
+    private val leConnectCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS
                     && newState == BluetoothProfile.STATE_CONNECTED) {
                 //Discover services
-                gatt!!.discoverServices()
+                progressDialog.hide()
+                gatt?.discoverServices()
             } else if (status == BluetoothGatt.GATT_SUCCESS
                     && newState == BluetoothProfile.STATE_DISCONNECTED) {
                 toast("Tank ${tank.title} disconnected")
@@ -125,14 +167,15 @@ class SplashActivity : AppCompatActivity() {
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
             bluetoothGatt = gatt!!
-                    mDelayHandler!!.postDelayed(mRunnable, SPLASH_DELAY)
-
-//            val ch =  BluetoothGattCharacteristic (
-//                    UUID.fromString (tank.uuid)
-//                    , BluetoothGattCharacteristic.PROPERTY_NOTIFY or BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE
-//                    , BluetoothGattDescriptor.PERMISSION_WRITE or BluetoothGattCharacteristic.PERMISSION_READ)
-//            ch.value = byteArrayOf(0x03.toByte())
-//            bluetoothGatt.writeCharacteristic(ch)
+//            mDelayHandler!!.postDelayed(mRunnable, SPLASH_DELAY)
+            var services = gatt!!.services
+            var characteristics = services[0].characteristics
+            var characteristic = characteristics[0]
+            characteristic.setValue(hexStringToByteArray("0xC5"))
+            if(gatt.writeCharacteristic(characteristic)){
+                characteristic.setValue(hexStringToByteArray("80"))
+                gatt.writeCharacteristic(characteristic)
+            }
         }
 
         override fun onCharacteristicRead(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
@@ -140,7 +183,10 @@ class SplashActivity : AppCompatActivity() {
         }
 
         override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
-            super.onCharacteristicWrite(gatt, characteristic, status)
+            //rewrite data
+            if (!characteristic?.value!!.equals(sendValue)) {
+                gatt?.writeCharacteristic(characteristic);
+            }
         }
     }
 
@@ -148,9 +194,21 @@ class SplashActivity : AppCompatActivity() {
         override fun onClick(view: View?, position: Int) {
             tank = tanks[position]
             toast("You select tank $tank")
-            tank.bluetoothDevice!!.connectGatt(view!!.context, false, leConnectCallback)
+            tank.bluetoothDevice?.connectGatt(view?.context, false, leConnectCallback)
             bleScanner.stopScan(leScanCallback)
         }
     }
 
+    fun hexStringToByteArray(s: String): ByteArray {
+        val len = s.length
+        val data = ByteArray(len / 2)
+
+        var i = 0
+        while (i < len) {
+            data[i / 2] = ((Character.digit(s[i], 16) shl 4) + Character.digit(s[i + 1], 16)).toByte()
+            i += 2
+        }
+
+        return data
+    }
 }
