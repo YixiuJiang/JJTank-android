@@ -13,7 +13,7 @@ import android.widget.ImageButton;
 import android.widget.Spinner;
 import android.widget.Toast;
 
-public class SettingActivity extends AppCompatActivity implements View.OnClickListener,AdapterView.OnItemSelectedListener {
+public class SettingActivity extends AppCompatActivity implements View.OnClickListener, AdapterView.OnItemSelectedListener {
     private ImageButton backButton;
     private ImageButton saveButton;
     private String[] speedDirectionOffset;
@@ -22,7 +22,8 @@ public class SettingActivity extends AppCompatActivity implements View.OnClickLi
     private String mDeviceAddress;
     private String tankName;
     private Spinner bluetoothIntervalSpinner;
-    private static final Integer[] interval = {100, 200, 500,800};
+    private ArrayAdapter<Integer> adapter;
+    private static final Integer[] interval = {100, 200, 500, 800};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,8 +39,8 @@ public class SettingActivity extends AppCompatActivity implements View.OnClickLi
         backButton.setOnClickListener(this);
         saveButton.setOnClickListener(this);
         bluetoothIntervalSpinner.setOnItemSelectedListener(this);
-        ArrayAdapter<Integer>adapter = new ArrayAdapter<Integer>(SettingActivity.this,
-                android.R.layout.simple_spinner_item,interval);
+        adapter = new ArrayAdapter<>(SettingActivity.this,
+                android.R.layout.simple_spinner_item, interval);
 
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         bluetoothIntervalSpinner.setAdapter(adapter);
@@ -51,16 +52,17 @@ public class SettingActivity extends AppCompatActivity implements View.OnClickLi
         SharedPreferences prefs = this.getSharedPreferences(
                 "com.jjstudio.jjtank", Context.MODE_PRIVATE);
         speedDirectionOffset = prefs.getString(MainActivity.TANK_SPEED_DIRECTION_OFFSET, "0|0").split("\\|");
-        int savedInterval = prefs.getInt(MainActivity.EXTRAS_BLUETOOTH_INTERVAL,100);
-        if (savedInterval==100){
+        int savedInterval = prefs.getInt(MainActivity.EXTRAS_BLUETOOTH_INTERVAL, 100);
+        if (savedInterval == 100) {
             bluetoothIntervalSpinner.setSelection(0);
-        }else if (savedInterval==200){
+        } else if (savedInterval == 200) {
             bluetoothIntervalSpinner.setSelection(1);
-        }else if (savedInterval==500){
+        } else if (savedInterval == 500) {
             bluetoothIntervalSpinner.setSelection(2);
-        }else {
+        } else {
             bluetoothIntervalSpinner.setSelection(3);
         }
+        adapter.notifyDataSetChanged();
         directionOffset.setText(speedDirectionOffset[0]);
         directionOffset.setText(speedDirectionOffset[1]);
     }
@@ -81,16 +83,18 @@ public class SettingActivity extends AppCompatActivity implements View.OnClickLi
             startActivity(intent);
         }
     }
+
     public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
         SharedPreferences prefs = this.getSharedPreferences(
                 "com.jjstudio.jjtank", Context.MODE_PRIVATE);
-        prefs.edit().putInt(MainActivity.EXTRAS_BLUETOOTH_INTERVAL, (Integer)parent.getItemAtPosition(position)).apply();
-        }
+        prefs.edit().putInt(MainActivity.EXTRAS_BLUETOOTH_INTERVAL, (Integer) parent.getItemAtPosition(position)).apply();
+    }
 
     @Override
     public void onNothingSelected(AdapterView<?> adapterView) {
         SharedPreferences prefs = this.getSharedPreferences(
-                "com.jjstudio.jjtank", Context.MODE_PRIVATE); prefs.edit().putInt(MainActivity.EXTRAS_BLUETOOTH_INTERVAL, 200).apply();
+                "com.jjstudio.jjtank", Context.MODE_PRIVATE);
+        prefs.edit().putInt(MainActivity.EXTRAS_BLUETOOTH_INTERVAL, 200).apply();
 
     }
 }
