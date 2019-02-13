@@ -359,7 +359,7 @@ public class SplashActivity extends AppCompatActivity implements LocationListene
             BluetoothDevice bluetoothDevice = result.getDevice();
             String deviceAddress = bluetoothDevice.getAddress();
             String deviceName = bluetoothDevice.getName();
-            if (deviceName != null && !tankUUIDs.contains(deviceAddress) && (TankControlData.isTest || deviceName != null && deviceName.startsWith("JJtk"))) {
+            if (deviceName != null && !tankUUIDs.contains(deviceAddress) && (TankControlData.isTest || deviceName != null && (deviceName.startsWith("JJtk")||deviceName.contains("580")))) {
                 tankUUIDs.add(deviceAddress);
                 tankList.add(new Tank(deviceName, deviceAddress, StatusEnum.Disconnected, bluetoothDevice));
                 tankInfoTextView.append("Found device  " + deviceName + " -  " + deviceAddress + "\n");
